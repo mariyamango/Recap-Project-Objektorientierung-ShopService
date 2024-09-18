@@ -3,6 +3,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -66,5 +67,50 @@ class ShopServiceTest {
         List<Order> listWithUpdatedOrder = shopService.getOrdersByStatus(OrderStatus.IN_DELIVERY);
         Order actual = listWithUpdatedOrder.stream().filter(order -> order.id().equals(order1.id())).findFirst().get();
         assertEquals(OrderStatus.IN_DELIVERY, actual.status());
+    }
+
+    @Test
+    void getOldestOrderPerStatus_whenGettingOldOrdersPerStatus_expectMapWithOldestOrders() {
+        //GIVEN
+        ProductRepo productRepo = new ProductRepo();
+        OrderRepo orderRepo = new OrderMapRepo();
+        IdService idService = new IdService();
+        ShopService shopService = new ShopService(productRepo, orderRepo, idService);
+        productRepo.addProduct(new Product("2","Orange"));
+        productRepo.addProduct(new Product("3","Kiwi"));
+        orderRepo.addOrder(new Order(
+                idService.generateId(),
+                OrderStatus.PROCESSING,
+                List.of(productRepo.getProductById("1").orElseThrow()),
+                Instant.parse("2024-09-01T10:00:00Z")
+        ));
+        orderRepo.addOrder(new Order(
+                idService.generateId(),
+                OrderStatus.PROCESSING,
+                List.of(productRepo.getProductById("2").orElseThrow()),
+                Instant.parse("2024-09-02T10:00:00Z")
+        ));
+        orderRepo.addOrder(new Order(
+                idService.generateId(),
+                OrderStatus.IN_DELIVERY,
+                List.of(productRepo.getProductById("3").orElseThrow()),
+                Instant.parse("2024-09-03T10:00:00Z")
+        ));
+        orderRepo.addOrder(new Order(
+                idService.generateId(),
+                OrderStatus.IN_DELIVERY,
+                List.of(productRepo.getProductById("1").orElseThrow()),
+                Instant.parse("2024-09-04T10:00:00Z")
+        ));
+
+        // WHEN
+        Map<OrderStatus,Order> actualOldestOrders = shopService.getOldestOrderPerStatus();
+
+        // THEN
+        assertEquals(2, actualOldestOrders.size());
+        Order oldestProcessingOrder = actualOldestOrders.get(OrderStatus.PROCESSING);
+        assertEquals("2024-09-01T10:00:00Z", oldestProcessingOrder.timestamp().toString());
+        Order oldestInDeliveryOrder = actualOldestOrders.get(OrderStatus.IN_DELIVERY);
+        assertEquals("2024-09-03T10:00:00Z", oldestInDeliveryOrder.timestamp().toString());
     }
 }
