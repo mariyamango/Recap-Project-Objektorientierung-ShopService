@@ -11,7 +11,7 @@ class ShopServiceTest {
     @Test
     void addOrderTest() {
         //GIVEN
-        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo());
+        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo(), new IdService());
         List<String> productsIds = List.of("1");
 
         //WHEN
@@ -26,7 +26,7 @@ class ShopServiceTest {
     @Test
     void addOrderTest_whenInvalidProductId_expectException() {
         //GIVEN
-        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo());
+        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo(), new IdService());
         List<String> productsIds = List.of("1", "2");
 
         //WHEN
@@ -38,7 +38,7 @@ class ShopServiceTest {
     @Test
     void getOrdersByStatus_whenProcessingStatus_expectTwoOrders() {
         //GIVEN
-        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo());
+        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo(), new IdService());
         List<String> productsIds = List.of("1");
         shopService.addOrder(productsIds);
         shopService.addOrder(productsIds);
@@ -55,7 +55,7 @@ class ShopServiceTest {
     @Test
     void updateOrder_whenUpdateToInDelivery_expectChangeStatus() {
         //GIVEN
-        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo());
+        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo(), new IdService());
         List<String> productsIds = List.of("1");
         Order order1 = shopService.addOrder(productsIds);
 
