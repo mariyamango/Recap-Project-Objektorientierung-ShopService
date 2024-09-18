@@ -55,4 +55,8 @@ public class ShopService {
                         entry -> entry.getValue().get()
                 ));
     }
+
+    public List<Order> getAllOrders() {
+        return orderRepo.getOrders();
+    }
 }
