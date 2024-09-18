@@ -1,5 +1,6 @@
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,22 +18,21 @@ class ShopServiceTest {
         Order actual = shopService.addOrder(productsIds);
 
         //THEN
-        Order expected = new Order("-1", OrderStatus.PROCESSING, List.of(new Product("1", "Apfel")));
+        Order expected = new Order("-1", OrderStatus.PROCESSING, List.of(new Product("1", "Apfel")), Instant.now());
         assertEquals(expected.products(), actual.products());
         assertNotNull(expected.id());
     }
 
     @Test
-    void addOrderTest_whenInvalidProductId_expectNull() {
+    void addOrderTest_whenInvalidProductId_expectException() {
         //GIVEN
         ShopService shopService = new ShopService();
         List<String> productsIds = List.of("1", "2");
 
         //WHEN
-        Order actual = shopService.addOrder(productsIds);
 
         //THEN
-        assertNull(actual);
+        assertThrows(ProductNotFoundException.class, () -> shopService.addOrder(productsIds));
     }
 
     @Test
@@ -40,8 +40,8 @@ class ShopServiceTest {
         //GIVEN
         ShopService shopService = new ShopService();
         List<String> productsIds = List.of("1");
-        Order order1 = shopService.addOrder(productsIds);
-        Order order2 = shopService.addOrder(productsIds);
+        shopService.addOrder(productsIds);
+        shopService.addOrder(productsIds);
 
         // WHEN
         List<Order> result = shopService.getOrdersByStatus(OrderStatus.PROCESSING);
@@ -50,5 +50,21 @@ class ShopServiceTest {
         assertEquals(2, result.size());
         assertEquals(OrderStatus.PROCESSING, result.get(0).status());
         assertEquals(OrderStatus.PROCESSING, result.get(1).status());
+    }
+
+    @Test
+    void updateOrder_whenUpdateToInDelivery_expectChangeStatus() {
+        //GIVEN
+        ShopService shopService = new ShopService();
+        List<String> productsIds = List.of("1");
+        Order order1 = shopService.addOrder(productsIds);
+
+        // WHEN
+        shopService.updateOrder(order1.id(), OrderStatus.IN_DELIVERY);
+
+        // THEN
+        List<Order> listWithUpdatedOrder = shopService.getOrdersByStatus(OrderStatus.IN_DELIVERY);
+        Order actual = listWithUpdatedOrder.stream().filter(order -> order.id().equals(order1.id())).findFirst().get();
+        assertEquals(OrderStatus.IN_DELIVERY, actual.status());
     }
 }
