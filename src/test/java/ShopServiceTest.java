@@ -2,6 +2,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -12,12 +13,11 @@ class ShopServiceTest {
     @Test
     void addOrderTest() {
         //GIVEN
-        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo(), new IdService());
-        List<String> productsIds = List.of("1");
+        ProductRepo productRepo = new ProductRepo();
+        ShopService shopService = new ShopService(productRepo, new OrderMapRepo(), new IdService());
 
         //WHEN
-        Order actual = shopService.addOrder(productsIds);
-
+        Order actual = shopService.addOrder(Map.of(productRepo.getProductById("1").get(),1.0));
         //THEN
         Order expected = new Order("-1", OrderStatus.PROCESSING, List.of(new Product("1", "Apfel")), Instant.now());
         assertEquals(expected.products(), actual.products());
@@ -27,26 +27,26 @@ class ShopServiceTest {
     @Test
     void addOrderTest_whenInvalidProductId_expectException() {
         //GIVEN
-        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo(), new IdService());
-        List<String> productsIds = List.of("1", "2");
-
+        ProductRepo productRepo = new ProductRepo();
+        ShopService shopService = new ShopService(productRepo, new OrderMapRepo(), new IdService());
         //WHEN
-
         //THEN
-        assertThrows(ProductNotFoundException.class, () -> shopService.addOrder(productsIds));
+        assertThrows(ProductNotFoundException.class, () -> {
+            shopService.addOrder(Map.of(new Product("999", "Invalid Product"),1.0));
+        });
     }
 
     @Test
     void getOrdersByStatus_whenProcessingStatus_expectTwoOrders() {
         //GIVEN
-        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo(), new IdService());
-        List<String> productsIds = List.of("1");
-        shopService.addOrder(productsIds);
-        shopService.addOrder(productsIds);
-
+        ProductRepo productRepo = new ProductRepo();
+        ShopService shopService = new ShopService(productRepo, new OrderMapRepo(), new IdService());
+        Map<Product,Double> productsAndQuantities = new HashMap<>();
+        productsAndQuantities.put(productRepo.getProductById("1").get(),10.0);
+        shopService.addOrder(Map.of(productRepo.getProductById("1").get(),1.0));
+        shopService.addOrder(Map.of(productRepo.getProductById("1").get(),2.0));
         // WHEN
         List<Order> result = shopService.getOrdersByStatus(OrderStatus.PROCESSING);
-
         // THEN
         assertEquals(2, result.size());
         assertEquals(OrderStatus.PROCESSING, result.get(0).status());
@@ -56,13 +56,13 @@ class ShopServiceTest {
     @Test
     void updateOrder_whenUpdateToInDelivery_expectChangeStatus() {
         //GIVEN
-        ShopService shopService = new ShopService(new ProductRepo(), new OrderMapRepo(), new IdService());
-        List<String> productsIds = List.of("1");
-        Order order1 = shopService.addOrder(productsIds);
-
+        ProductRepo productRepo = new ProductRepo();
+        ShopService shopService = new ShopService(productRepo, new OrderMapRepo(), new IdService());
+        productRepo.addProduct(new Product("2","Orange"), 10);
+        productRepo.addProduct(new Product("3","Kiwi"), 15);
+        Order order1 = shopService.addOrder(Map.of(productRepo.getProductById("1").get(),1.0));
         // WHEN
         shopService.updateOrder(order1.id(), OrderStatus.IN_DELIVERY);
-
         // THEN
         List<Order> listWithUpdatedOrder = shopService.getOrdersByStatus(OrderStatus.IN_DELIVERY);
         Order actual = listWithUpdatedOrder.stream().filter(order -> order.id().equals(order1.id())).findFirst().get();
@@ -76,8 +76,8 @@ class ShopServiceTest {
         OrderRepo orderRepo = new OrderMapRepo();
         IdService idService = new IdService();
         ShopService shopService = new ShopService(productRepo, orderRepo, idService);
-        productRepo.addProduct(new Product("2","Orange"));
-        productRepo.addProduct(new Product("3","Kiwi"));
+        productRepo.addProduct(new Product("2","Orange"), 10);
+        productRepo.addProduct(new Product("3","Kiwi"), 15);
         orderRepo.addOrder(new Order(
                 idService.generateId(),
                 OrderStatus.PROCESSING,

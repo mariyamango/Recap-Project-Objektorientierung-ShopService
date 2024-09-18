@@ -38,7 +38,7 @@ class ProductRepoTest {
         Optional<Product> newProduct = Optional.of(new Product("2", "Banane"));
 
         //WHEN
-        Optional<Product> actual = Optional.ofNullable(repo.addProduct(newProduct.get()));
+        Optional<Product> actual = Optional.ofNullable(repo.addProduct(newProduct.get(), 10));
 
         //THEN
         Optional<Product> expected = Optional.of(new Product("2", "Banane"));

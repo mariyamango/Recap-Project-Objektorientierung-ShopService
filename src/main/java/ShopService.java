@@ -1,3 +1,4 @@
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
@@ -6,22 +7,27 @@ import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class ShopService {
+    @Getter
     private final ProductRepo productRepo;
     private final OrderRepo orderRepo;
     private final IdService idService;
 
-    public Order addOrder(List<String> productIds) {
+    public Order addOrder(Map<Product,Double> productIdsAndQuantities) {
         List<Product> products = new ArrayList<>();
-        for (String productId : productIds) {
-            Optional<Product> productToOrder = productRepo.getProductById(productId);
+        for (Product productFromMap : productIdsAndQuantities.keySet()) {
+            Optional<Product> productToOrder = productRepo.getProductById(productFromMap.id());
             if (productToOrder.isEmpty()) {
-                throw new ProductNotFoundException("Product with ID: " + productId + " could not be found.");
+                throw new ProductNotFoundException("Product with ID: " + productFromMap.id() + " could not be found.");
             }
-            products.add(productToOrder.get());
+            Product product = productToOrder.get();
+
+            if (!productRepo.reduceProductQuantity(product, productIdsAndQuantities.get(product))) {
+                System.out.println("Not enough quantity on stock for product: " + product.name());
+                return null;
+            }
+            products.add(product);
         }
-
         Order newOrder = new Order(idService.generateId(), OrderStatus.PROCESSING, products, Instant.now());
-
         return orderRepo.addOrder(newOrder);
     }
 

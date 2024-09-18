@@ -17,9 +17,9 @@ public class Main {
 
         shopService = new ShopService(productRepo, orderRepo, idService);
 
-        productRepo.addProduct(new Product("2","Orange"));
-        productRepo.addProduct(new Product("3","Kiwi"));
-        productRepo.addProduct(new Product("4","Strawberry"));
+        productRepo.addProduct(new Product("2","Orange"), 10);
+        productRepo.addProduct(new Product("3","Kiwi"), 15);
+        productRepo.addProduct(new Product("4","Strawberry"), 5.5);
 
 //        Order order1 = shopService.addOrder(List.of("1","2"));
 //        Order order2 = shopService.addOrder(List.of("3","4"));
@@ -75,25 +75,37 @@ public class Main {
     }
 
     private static void executeAddOrder(String[] parts) {
-        if (parts.length < 2) {
-            System.err.println("Invalid addOrder command");
-            return;
+//        if (parts.length < 3 || (parts.length - 2) % 2 != 0) {
+//            System.out.println("Invalid addOrder command. Expected format: addOrder <alias> <productId,quantity> ...");
+//            return;
+//        }
+
+        String orderAlias = parts[1];
+        Map<Product, Double> productQuantities = new HashMap<>();
+
+        for (int i = 2; i < parts.length; i++) {
+            String[] productQuantity = parts[i].split(",");
+            if (productQuantity.length != 2) {
+                System.out.println("Invalid product-quantity format for: " + parts[i]);
+                return;
+            }
+            try {
+                String productId = productQuantity[0];
+                double quantity = Double.parseDouble(productQuantity[1]);
+                Product product = shopService.getProductRepo().getProductById(productId)
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid product Id: " + productId));
+                productQuantities.put(product, quantity);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid quantity format for productId " + productQuantity[0] + ": " + productQuantity[1]);
+                return;
+            } catch (IllegalArgumentException e) {
+                System.out.println(e.getMessage());
+                return;
+            }
         }
 
-        String alias = parts[1];
-        List<String> productIds = List.of(parts).subList(2, parts.length);
-        if (productIds.isEmpty()) {
-            System.err.println("No product Ids provided for addOrder command");
-            return;
-        }
-
-        Order newOrder = shopService.addOrder(productIds);
-        if (newOrder != null) {
-            orderAliasMap.put(alias, newOrder.id());
-            System.out.println("Order added with alias: " + alias + " and Id: " + newOrder.id() + " List of products: " + newOrder.products());
-        } else {
-            System.err.println("Failed to add order for alias: " + alias);
-        }
+        Order newOrder = shopService.addOrder(productQuantities);
+        orderAliasMap.put(orderAlias, newOrder.id());
     }
 
     private static void executeSetStatus(String[] parts) {
