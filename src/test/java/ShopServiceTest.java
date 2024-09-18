@@ -39,8 +39,8 @@ class ShopServiceTest {
         //GIVEN
         ShopService shopService = new ShopService();
         List<String> productsIds = List.of("1");
-        Order order1 = shopService.addOrder(productsIds);
-        Order order2 = shopService.addOrder(productsIds);
+        shopService.addOrder(productsIds);
+        shopService.addOrder(productsIds);
 
         // WHEN
         List<Order> result = shopService.getOrdersByStatus(OrderStatus.PROCESSING);
@@ -49,5 +49,21 @@ class ShopServiceTest {
         assertEquals(2, result.size());
         assertEquals(OrderStatus.PROCESSING, result.get(0).status());
         assertEquals(OrderStatus.PROCESSING, result.get(1).status());
+    }
+
+    @Test
+    void updateOrder_whenUpdateToInDelivery_expectChangeStatus() {
+        //GIVEN
+        ShopService shopService = new ShopService();
+        List<String> productsIds = List.of("1");
+        Order order1 = shopService.addOrder(productsIds);
+
+        // WHEN
+        shopService.updateOrder(order1.id(), OrderStatus.IN_DELIVERY);
+
+        // THEN
+        List<Order> listWithUpdatedOrder = shopService.getOrdersByStatus(OrderStatus.IN_DELIVERY);
+        Order actual = listWithUpdatedOrder.stream().filter(order -> order.id().equals(order1.id())).findFirst().get();
+        assertEquals(OrderStatus.IN_DELIVERY, actual.status());
     }
 }
